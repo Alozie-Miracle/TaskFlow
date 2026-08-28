@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { AppLayout } from '@/components/AppLayout';
-import { PriorityBadge, StatusBadge } from '@/components/ui/Badge';
+import { PriorityBadge } from '@/components/ui/Badge';
 import { StatCardSkeleton } from '@/components/ui/Skeleton';
 import { TaskModal } from '@/components/TaskModal';
 import { useToast } from '@/components/context/ToastContext';
@@ -15,13 +15,9 @@ import {
   AlertTriangle,
   ArrowUpRight,
   Plus,
-  Calendar,
-  Sparkles,
   ChevronRight,
   TrendingUp,
   Activity,
-  ArrowRight,
-  User as UserIcon,
 } from 'lucide-react';
 import { DashboardStats, Task, Assignee, Status } from '@/types';
 import { formatDate, getDueDateStatus, getInitials, cn } from '@/lib/utils';
@@ -40,7 +36,7 @@ export default function DashboardPage() {
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const toast = useToast();
 
-  const fetchDashboardData = React.useCallback(async () => {
+  const fetchDashboardData = useCallback(async () => {
     try {
       const [dashRes, asgRes] = await Promise.all([
         fetch('/api/dashboard'),
@@ -59,6 +55,7 @@ export default function DashboardPage() {
 
       if (asgRes.ok) {
         const asgData = await asgRes.json();
+        console.log(asgData)
         setAssignees(asgData.assignees || []);
       }
     } catch {

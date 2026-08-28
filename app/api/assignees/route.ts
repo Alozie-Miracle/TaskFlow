@@ -1,65 +1,114 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { serverStore } from '@/lib/storage';
+import { connectToDatabase } from '@/lib/db';
+import { AssigneeModel } from '@/models/Assignee';
+import '@/models/Task'; // Ensure Task model is registered for aggregate pipelines
+import { assigneeSchema } from '@/lib/validations/assignee';
 
 export async function GET() {
-  const assignees = serverStore.getAssignees();
-  const tasks = serverStore.getTasks();
+  try {
+    await connectToDatabase();
 
-  // Attach task metrics to each assignee
-  const assigneesWithMetrics = assignees.map((assignee) => {
-    const assignedTasks = tasks.filter((t) => t.assigneeId === assignee.id);
-    const activeTasks = assignedTasks.filter((t) => t.status !== 'completed').length;
-    const completedTasks = assignedTasks.filter((t) => t.status === 'completed').length;
+    // MongoDB Aggregation to attach computed task metrics directly in the DB
+    const assigneesWithMetrics = await AssigneeModel.aggregate([
+      {
+        $lookup: {
+          from: 'tasks',
+          localField: '_id',
+          foreignField: 'assigneeId',
+          as: 'assignedTasks',
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          name: 1,
+          email: 1,
+          role: 1,
+          department: 1,
+          avatarColor: 1,
+          createdAt: 1,
+          updatedAt: 1,
+          taskCount: { $size: '$assignedTasks' },
+          activeTasks: {
+            $size: {
+              $filter: {
+                input: '$assignedTasks',
+                as: 'task',
+                cond: { $ne: ['$$task.status', 'Completed'] },
+              },
+            },
+          },
+          completedTasks: {
+            $size: {
+              $filter: {
+                input: '$assignedTasks',
+                as: 'task',
+                cond: { $eq: ['$$task.status', 'Completed'] },
+              },
+            },
+          },
+        },
+      },
+      { $sort: { createdAt: -1 } },
+    ]);
 
-    return {
-      ...assignee,
-      taskCount: assignedTasks.length,
-      activeTasks,
-      completedTasks,
-    };
-  });
-
-  return NextResponse.json({ assignees: assigneesWithMetrics });
+    return NextResponse.json({ assignees: assigneesWithMetrics });
+  } catch (error) {
+    return NextResponse.json(
+      { error: 'Failed to retrieve assignees.' },
+      { status: 500 }
+    );
+  }
 }
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { name, email, role, department, avatarColor } = body;
 
-    const errors: Record<string, string> = {};
-    if (!name || !name.trim()) {
-      errors.name = 'Full name is required.';
-    }
-    if (!email || !email.trim()) {
-      errors.email = 'Email is required.';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      errors.email = 'Please provide a valid email address.';
-    } else {
-      // Check duplicate email
-      const existing = serverStore.getAssignees().find((a) => a.email.toLowerCase() === email.trim().toLowerCase());
-      if (existing) {
-        errors.email = 'An assignee with this email already exists.';
-      }
-    }
-    if (!role || !role.trim()) {
-      errors.role = 'Role / Job title is required.';
-    }
+    // 1. Zod input validation
+    const validation = assigneeSchema.safeParse(body);
+    if (!validation.success) {
+      const errors = validation.error.issues.reduce<Record<string, string>>((acc, issue) => {
+        const path = issue.path[0];
+        if (path) {
+          acc[path.toString()] = issue.message;
+        }
+        return acc;
+      }, {});
 
-    if (Object.keys(errors).length > 0) {
       return NextResponse.json({ errors }, { status: 400 });
     }
 
-    const newAssignee = serverStore.createAssignee({
+    const { name, email, role, department, avatarColor } = validation.data;
+
+    await connectToDatabase();
+
+    // 2. Check duplicate email in MongoDB
+    const existingAssignee = await AssigneeModel.findOne({ email });
+    if (existingAssignee) {
+      return NextResponse.json(
+        { errors: { email: 'An assignee with this email already exists.' } },
+        { status: 400 }
+      );
+    }
+
+    // 3. Create Assignee
+    const newAssignee = await AssigneeModel.create({
       name,
       email,
       role,
-      department: department || 'General',
-      avatarColor: avatarColor || 'bg-indigo-500',
+      department,
+      avatarColor,
     });
 
-    return NextResponse.json({ assignee: newAssignee, message: 'Assignee created successfully' }, { status: 201 });
-  } catch {
-    return NextResponse.json({ error: 'Failed to create assignee.' }, { status: 500 });
+    return NextResponse.json(
+      { assignee: newAssignee, message: 'Assignee created successfully' },
+      { status: 201 }
+    );
+  } catch (error) {
+    return NextResponse.json(
+      { error: 'Failed to create assignee.' },
+      { status: 500 }
+    );
   }
 }

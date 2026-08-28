@@ -1,79 +1,174 @@
 import { NextResponse } from 'next/server';
-import { serverStore } from '@/lib/storage';
+import { connectToDatabase } from '@/lib/db';
+import { TaskModel } from '@/models/Task';
+import { AssigneeModel } from '@/models/Assignee';
 
 export async function GET() {
-  const stats = serverStore.getDashboardStats();
-  const allTasks = serverStore.getTasks();
-  const assignees = serverStore.getAssignees();
+  try {
+    await connectToDatabase();
 
-  const todayStr = new Date().toISOString().split('T')[0];
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
 
-  // Overdue and upcoming tasks
-  const overdueTasks = allTasks
-    .filter((t) => t.status !== 'completed' && t.dueDate < todayStr)
-    .sort((a, b) => a.dueDate.localeCompare(b.dueDate))
-    .slice(0, 5);
+    // 1. Parallel Database Execution for Base Metrics & Tasks
+    const [
+      totalTasks,
+      todoTasks,
+      inProgressTasks,
+      completedTasks,
+      totalAssignees,
+      overdueTasks,
+      upcomingTasks,
+      recentTasks,
+      assigneeWorkload,
+      activityTasks,
+    ] = await Promise.all([
+      // Quick Count Metrics
+      TaskModel.countDocuments(),
+      TaskModel.countDocuments({ status: 'Todo' }),
+      TaskModel.countDocuments({ status: 'In Progress' }),
+      TaskModel.countDocuments({ status: 'Completed' }),
+      AssigneeModel.countDocuments(),
 
-  const upcomingTasks = allTasks
-    .filter((t) => t.status !== 'completed' && t.dueDate >= todayStr)
-    .sort((a, b) => a.dueDate.localeCompare(b.dueDate))
-    .slice(0, 5);
+      // Overdue Tasks (Not completed and due date before today)
+      TaskModel.find({
+        status: { $ne: 'Completed' },
+        dueDate: { $lt: startOfToday },
+      })
+        .populate('assigneeId', 'name email avatarColor role')
+        .sort({ dueDate: 1 })
+        .limit(5)
+        .lean(),
 
-  // Recent activity stream: extract activities across tasks
-  const activities: Array<{
-    id: string;
-    taskId: string;
-    taskTitle: string;
-    timestamp: string;
-    action: string;
-    user: string;
-    details?: string;
-    priority: string;
-    status: string;
-  }> = [];
+      // Upcoming Tasks (Not completed and due date today or later)
+      TaskModel.find({
+        status: { $ne: 'Completed' },
+        dueDate: { $gte: startOfToday },
+      })
+        .populate('assigneeId', 'name email avatarColor role')
+        .sort({ dueDate: 1 })
+        .limit(5)
+        .lean(),
 
-  allTasks.forEach((task) => {
-    if (task.activities) {
-      task.activities.forEach((act) => {
-        activities.push({
-          id: act.id,
-          taskId: task.id,
-          taskTitle: task.title,
-          timestamp: act.timestamp,
-          action: act.action,
-          user: act.user,
-          details: act.details,
-          priority: task.priority,
-          status: task.status,
-        });
-      });
-    }
-  });
+      // Recent Tasks listing for Dashboard Overview
+      TaskModel.find()
+        .populate('assigneeId', 'name email avatarColor role')
+        .sort({ createdAt: -1 })
+        .limit(6)
+        .lean(),
 
-  activities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-  const recentActivities = activities.slice(0, 7);
+      // Assignee Workload Breakdown using Aggregation Pipeline
+      AssigneeModel.aggregate([
+        {
+          $lookup: {
+            from: 'tasks',
+            localField: '_id',
+            foreignField: 'assigneeId',
+            as: 'userTasks',
+          },
+        },
+        {
+          $project: {
+            id: '$_id',
+            name: 1,
+            role: 1,
+            avatarColor: 1,
+            total: { $size: '$userTasks' },
+            todo: {
+              $size: {
+                $filter: {
+                  input: '$userTasks',
+                  as: 't',
+                  cond: { $eq: ['$$t.status', 'Todo'] },
+                },
+              },
+            },
+            inProgress: {
+              $size: {
+                $filter: {
+                  input: '$userTasks',
+                  as: 't',
+                  cond: { $eq: ['$$t.status', 'In Progress'] },
+                },
+              },
+            },
+            completed: {
+              $size: {
+                $filter: {
+                  input: '$userTasks',
+                  as: 't',
+                  cond: { $eq: ['$$t.status', 'Completed'] },
+                },
+              },
+            },
+          },
+        },
+      ]),
 
-  // Assignee workload distribution
-  const assigneeWorkload = assignees.map((asg) => {
-    const userTasks = allTasks.filter((t) => t.assigneeId === asg.id);
-    return {
-      id: asg.id,
-      name: asg.name,
-      role: asg.role,
-      avatarColor: asg.avatarColor,
-      total: userTasks.length,
-      todo: userTasks.filter((t) => t.status === 'todo').length,
-      inProgress: userTasks.filter((t) => t.status === 'in_progress').length,
-      completed: userTasks.filter((t) => t.status === 'completed').length,
+      // Fetch Tasks containing activity subdocuments
+      TaskModel.find({ 'activities.0': { $exists: true } })
+        .select('title priority status activities')
+        .lean(),
+    ]);
+
+    // 2. Format Dashboard Statistics Object
+    const stats = {
+      totalTasks,
+      todoTasks,
+      inProgressTasks,
+      completedTasks,
+      totalAssignees,
+      overdueCount: overdueTasks.length,
     };
-  });
 
-  return NextResponse.json({
-    stats,
-    overdueTasks,
-    upcomingTasks,
-    recentActivities,
-    assigneeWorkload,
-    recentTasks: allTasks.slice(0, 6),
-  });
+    // 3. Flatten and Sort Activity History Stream
+    const activities: Array<{
+      id: string;
+      taskId: string;
+      taskTitle: string;
+      timestamp: Date;
+      action: string;
+      user: string;
+      details?: string;
+      priority: string;
+      status: string;
+    }> = [];
+
+    activityTasks.forEach((task: any) => {
+      if (task.activities && Array.isArray(task.activities)) {
+        task.activities.forEach((act: any) => {
+          activities.push({
+            id: act._id ? act._id.toString() : act.id,
+            taskId: task._id.toString(),
+            taskTitle: task.title,
+            timestamp: act.timestamp || act.createdAt,
+            action: act.action,
+            user: act.user,
+            details: act.details,
+            priority: task.priority,
+            status: task.status,
+          });
+        });
+      }
+    });
+
+    activities.sort(
+      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    );
+    const recentActivities = activities.slice(0, 7);
+
+    return NextResponse.json({
+      stats,
+      overdueTasks,
+      upcomingTasks,
+      recentActivities,
+      assigneeWorkload,
+      recentTasks,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      { error: 'Failed to generate dashboard statistics.' },
+      { status: 500 }
+    );
+  }
 }

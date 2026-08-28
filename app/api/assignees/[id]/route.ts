@@ -1,30 +1,46 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { serverStore } from '@/lib/storage';
+import mongoose from 'mongoose';
+import { connectToDatabase } from '@/lib/db';
+import { AssigneeModel } from '@/models/Assignee';
+import { TaskModel } from '@/models/Task';
 
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await params;
-  const assignee = serverStore.getAssigneeById(id);
+  try {
+    const { id } = await params;
 
-  if (!assignee) {
-    return NextResponse.json({ error: 'Assignee not found' }, { status: 404 });
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return NextResponse.json({ error: 'Invalid Assignee ID format.' }, { status: 400 });
+    }
+
+    await connectToDatabase();
+
+    const assignee = await AssigneeModel.findById(id).lean();
+
+    if (!assignee) {
+      return NextResponse.json({ error: 'Assignee not found.' }, { status: 404 });
+    }
+
+    // Retrieve tasks associated with this assignee
+    const tasks = await TaskModel.find({ assigneeId: id }).sort({ createdAt: -1 }).lean();
+
+    const activeTasks = tasks.filter((t) => t.status !== 'Completed').length;
+    const completedTasks = tasks.filter((t) => t.status === 'Completed').length;
+
+    return NextResponse.json({
+      assignee: {
+        ...assignee,
+        taskCount: tasks.length,
+        activeTasks,
+        completedTasks,
+      },
+      tasks,
+    });
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to retrieve assignee details.' }, { status: 500 });
   }
-
-  const tasks = serverStore.getTasksByAssignee(id);
-  const activeTasks = tasks.filter((t) => t.status !== 'completed').length;
-  const completedTasks = tasks.filter((t) => t.status === 'completed').length;
-
-  return NextResponse.json({
-    assignee: {
-      ...assignee,
-      taskCount: tasks.length,
-      activeTasks,
-      completedTasks,
-    },
-    tasks,
-  });
 }
 
 export async function PUT(
@@ -33,25 +49,38 @@ export async function PUT(
 ) {
   try {
     const { id } = await params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return NextResponse.json({ error: 'Invalid Assignee ID format.' }, { status: 400 });
+    }
+
     const body = await req.json();
     const { name, email, role, department, avatarColor } = body;
 
     const errors: Record<string, string> = {};
+
     if (name !== undefined && !name.trim()) {
       errors.name = 'Full name cannot be empty.';
     }
+    
+    await connectToDatabase();
+
     if (email !== undefined) {
-      if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      const cleanEmail = email.trim().toLowerCase();
+      if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
         errors.email = 'Valid email is required.';
       } else {
-        const existing = serverStore
-          .getAssignees()
-          .find((a) => a.id !== id && a.email.toLowerCase() === email.trim().toLowerCase());
+        const existing = await AssigneeModel.findOne({
+          email: cleanEmail,
+          _id: { $ne: id },
+        });
+
         if (existing) {
           errors.email = 'An assignee with this email already exists.';
         }
       }
     }
+
     if (role !== undefined && !role.trim()) {
       errors.role = 'Role cannot be empty.';
     }
@@ -60,20 +89,28 @@ export async function PUT(
       return NextResponse.json({ errors }, { status: 400 });
     }
 
-    const updated = serverStore.updateAssignee(id, {
-      name,
-      email,
-      role,
-      department,
-      avatarColor,
-    });
+    const updateFields: Record<string, any> = {};
+    if (name !== undefined) updateFields.name = name.trim();
+    if (email !== undefined) updateFields.email = email.trim().toLowerCase();
+    if (role !== undefined) updateFields.role = role.trim();
+    if (department !== undefined) updateFields.department = department.trim();
+    if (avatarColor !== undefined) updateFields.avatarColor = avatarColor;
 
-    if (!updated) {
-      return NextResponse.json({ error: 'Assignee not found' }, { status: 404 });
+    const updatedAssignee = await AssigneeModel.findByIdAndUpdate(
+      id,
+      { $set: updateFields },
+      { new: true, runValidators: true }
+    ).lean();
+
+    if (!updatedAssignee) {
+      return NextResponse.json({ error: 'Assignee not found.' }, { status: 404 });
     }
 
-    return NextResponse.json({ assignee: updated, message: 'Assignee updated successfully' });
-  } catch {
+    return NextResponse.json({
+      assignee: updatedAssignee,
+      message: 'Assignee updated successfully.',
+    });
+  } catch (error) {
     return NextResponse.json({ error: 'Failed to update assignee.' }, { status: 500 });
   }
 }
@@ -82,16 +119,33 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await params;
-  const result = serverStore.deleteAssignee(id);
+  try {
+    const { id } = await params;
 
-  if (!result.success) {
-    return NextResponse.json({ error: 'Assignee not found' }, { status: 404 });
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return NextResponse.json({ error: 'Invalid Assignee ID format.' }, { status: 400 });
+    }
+
+    await connectToDatabase();
+
+    const deletedAssignee = await AssigneeModel.findByIdAndDelete(id);
+
+    if (!deletedAssignee) {
+      return NextResponse.json({ error: 'Assignee not found.' }, { status: 404 });
+    }
+
+    // Cascade: Unassign tasks linked to this assignee
+    const updateResult = await TaskModel.updateMany(
+      { assigneeId: id },
+      { $unset: { assigneeId: '' } }
+    );
+
+    return NextResponse.json({
+      success: true,
+      unassignedTasksCount: updateResult.modifiedCount,
+      message: `Assignee deleted successfully. ${updateResult.modifiedCount} task(s) unassigned.`,
+    });
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to delete assignee.' }, { status: 500 });
   }
-
-  return NextResponse.json({
-    success: true,
-    unassignedTasksCount: result.unassignedTasksCount,
-    message: `Assignee deleted successfully. ${result.unassignedTasksCount} task(s) unassigned.`,
-  });
 }

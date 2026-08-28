@@ -1,110 +1,162 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { serverStore } from '@/lib/storage';
-import { Priority, Status } from '@/types';
+import mongoose from 'mongoose';
+import type { Filter } from 'mongodb';
+import { connectToDatabase } from '@/lib/db';
+import { TaskModel, ITask } from '@/models/Task';
+import { AssigneeModel } from '@/models/Assignee';
+import { taskSchema } from '@/lib/validations/task';
+
 
 export async function GET(req: NextRequest) {
-  const searchParams = req.nextUrl.searchParams;
-  const search = searchParams.get('search')?.toLowerCase() || '';
-  const status = searchParams.get('status') as Status | 'all' | null;
-  const priority = searchParams.get('priority') as Priority | 'all' | null;
-  const assigneeId = searchParams.get('assigneeId');
-  const sortBy = searchParams.get('sortBy') || 'createdAt';
-  const sortOrder = searchParams.get('sortOrder') || 'desc';
+  try {
+    await connectToDatabase();
 
-  let tasks = serverStore.getTasks();
+    const searchParams = req.nextUrl.searchParams;
+    const search = searchParams.get('search')?.trim() || '';
+    const status = searchParams.get('status');
+    const priority = searchParams.get('priority');
+    const assigneeId = searchParams.get('assigneeId');
+    const sortBy = searchParams.get('sortBy') || 'createdAt';
+    const sortOrder = searchParams.get('sortOrder') === 'asc' ? 1 : -1;
 
-  // Filter by search query
-  if (search) {
-    tasks = tasks.filter(
-      (t) =>
-        t.title.toLowerCase().includes(search) ||
-        t.description.toLowerCase().includes(search) ||
-        (t.assignee && t.assignee.name.toLowerCase().includes(search))
-    );
-  }
+    // Build MongoDB Query Filter using MongoDB Filter interface
+    const filter: Filter<ITask> = {};
 
-  // Filter by status
-  if (status && status !== 'all') {
-    tasks = tasks.filter((t) => t.status === status);
-  }
-
-  // Filter by priority
-  if (priority && priority !== 'all') {
-    tasks = tasks.filter((t) => t.priority === priority);
-  }
-
-  // Filter by assigneeId
-  if (assigneeId && assigneeId !== 'all') {
-    if (assigneeId === 'unassigned') {
-      tasks = tasks.filter((t) => !t.assigneeId);
-    } else {
-      tasks = tasks.filter((t) => t.assigneeId === assigneeId);
+    // Filter by Status
+    if (status && status !== 'all') {
+      filter.status = status as ITask['status'];
     }
-  }
 
-  // Sort
-  tasks.sort((a, b) => {
-    let comparison = 0;
+    // Filter by Priority
+    if (priority && priority !== 'all') {
+      filter.priority = priority as ITask['priority'];
+    }
+
+    // Filter by Assignee
+    if (assigneeId && assigneeId !== 'all') {
+      if (assigneeId === 'unassigned') {
+        filter.$or = [{ assigneeId: null }, { assigneeId: { $exists: false } }] as Filter<ITask>[];
+      } else if (mongoose.Types.ObjectId.isValid(assigneeId)) {
+        filter.assigneeId = assigneeId as any;
+      }
+    }
+
+    // Filter by Search Query (Title, Description, or Assignee Name matching)
+    if (search) {
+      const matchingAssignees = await AssigneeModel.find({
+        name: { $regex: search, $options: 'i' },
+      }).select('_id');
+
+      const assigneeIds = matchingAssignees.map((a) => a._id);
+
+      const searchConditions: Filter<ITask>[] = [
+        { title: { $regex: search, $options: 'i' } } as Filter<ITask>,
+        { description: { $regex: search, $options: 'i' } } as Filter<ITask>,
+      ];
+
+      if (assigneeIds.length > 0) {
+        searchConditions.push({ assigneeId: { $in: assigneeIds } } as Filter<ITask>);
+      }
+
+      if (filter.$or) {
+        filter.$and = [{ $or: filter.$or }, { $or: searchConditions }] as Filter<ITask>[];
+        delete filter.$or;
+      } else {
+        filter.$or = searchConditions;
+      }
+    }
+
+    // Define Sorting Logic
+    let sortOptions: Record<string, 1 | -1> = {};
     if (sortBy === 'dueDate') {
-      comparison = a.dueDate.localeCompare(b.dueDate);
+      sortOptions = { dueDate: sortOrder };
     } else if (sortBy === 'title') {
-      comparison = a.title.localeCompare(b.title);
+      sortOptions = { title: sortOrder };
     } else if (sortBy === 'priority') {
-      const pWeights: Record<Priority, number> = { high: 3, medium: 2, low: 1 };
-      comparison = pWeights[a.priority] - pWeights[b.priority];
+      sortOptions = { priority: sortOrder };
     } else {
-      // default createdAt
-      comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      sortOptions = { createdAt: sortOrder };
     }
-    return sortOrder === 'asc' ? comparison : -comparison;
-  });
 
-  return NextResponse.json({ tasks, total: tasks.length });
+    // Fetch tasks populated with assignee details
+    const tasks = await TaskModel.find(filter)
+      .populate('assigneeId', 'name email avatarColor role')
+      .sort(sortOptions)
+      .lean();
+
+    return NextResponse.json({ tasks, total: tasks.length });
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to fetch tasks.' }, { status: 500 });
+  }
 }
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { title, description, assigneeId, priority, status, dueDate } = body;
 
-    // Server-side validation
-    const errors: Record<string, string> = {};
-    if (!title || !title.trim()) {
-      errors.title = 'Task title is required.';
-    } else if (title.trim().length < 3) {
-      errors.title = 'Task title must be at least 3 characters.';
-    }
+    // 1. Zod Input Validation
+    const validation = taskSchema.safeParse(body);
+    if (!validation.success) {
+      const errors = validation.error.issues.reduce<Record<string, string>>((acc, issue) => {
+        const path = issue.path[0];
+        if (path) {
+          acc[path.toString()] = issue.message;
+        }
+        return acc;
+      }, {});
 
-    if (!description || !description.trim()) {
-      errors.description = 'Task description is required.';
-    }
-
-    if (!priority || !['low', 'medium', 'high'].includes(priority)) {
-      errors.priority = 'Valid priority (low, medium, high) is required.';
-    }
-
-    if (!status || !['todo', 'in_progress', 'completed'].includes(status)) {
-      errors.status = 'Valid status (todo, in_progress, completed) is required.';
-    }
-
-    if (!dueDate || !/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) {
-      errors.dueDate = 'Valid due date (YYYY-MM-DD) is required.';
-    }
-
-    if (Object.keys(errors).length > 0) {
       return NextResponse.json({ errors }, { status: 400 });
     }
 
-    const newTask = serverStore.createTask({
+    const { title, description, assigneeId, priority, status, dueDate } = validation.data;
+
+    await connectToDatabase();
+
+    // 2. Validate Assignee ID if provided
+    let validAssigneeId = null;
+    if (assigneeId) {
+      if (!mongoose.Types.ObjectId.isValid(assigneeId)) {
+        return NextResponse.json(
+          { errors: { assigneeId: 'Invalid Assignee ID format.' } },
+          { status: 400 }
+        );
+      }
+      const assigneeExists = await AssigneeModel.exists({ _id: assigneeId });
+      if (!assigneeExists) {
+        return NextResponse.json(
+          { errors: { assigneeId: 'Assignee not found.' } },
+          { status: 400 }
+        );
+      }
+      validAssigneeId = assigneeId;
+    }
+
+    // 3. Create Task with Initial Logged Activity
+    const newTask = await TaskModel.create({
       title,
       description,
-      assigneeId: assigneeId || null,
+      assigneeId: validAssigneeId,
       priority,
       status,
-      dueDate,
+      dueDate: new Date(dueDate),
+      activities: [
+        {
+          action: 'created',
+          user: 'Admin',
+          details: 'Task was created',
+          timestamp: new Date(),
+        },
+      ],
     });
 
-    return NextResponse.json({ task: newTask, message: 'Task created successfully' }, { status: 201 });
+    const populatedTask = await TaskModel.findById(newTask._id)
+      .populate('assigneeId', 'name email avatarColor role')
+      .lean();
+
+    return NextResponse.json(
+      { task: populatedTask, message: 'Task created successfully' },
+      { status: 201 }
+    );
   } catch (error) {
     return NextResponse.json({ error: 'Failed to create task.' }, { status: 500 });
   }

@@ -8,12 +8,12 @@ export function cn(...inputs: ClassValue[]) {
 
 export function formatStatus(status: Status): string {
   switch (status) {
-    case 'todo':
+    case 'Todo':
       return 'Todo';
-    case 'in_progress':
+    case 'In Progress':
       return 'In Progress';
-    case 'completed':
-      return 'Completed';
+    case 'Completed':
+      return 'Complete';
     default:
       return status;
   }
@@ -21,11 +21,11 @@ export function formatStatus(status: Status): string {
 
 export function formatPriority(priority: Priority): string {
   switch (priority) {
-    case 'low':
+    case 'Low':
       return 'Low';
-    case 'medium':
+    case 'Medium':
       return 'Medium';
-    case 'high':
+    case 'High':
       return 'High';
     default:
       return priority;
@@ -34,11 +34,11 @@ export function formatPriority(priority: Priority): string {
 
 export function getPriorityStyles(priority: Priority): string {
   switch (priority) {
-    case 'low':
+    case 'Low':
       return 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700';
-    case 'medium':
+    case 'Medium':
       return 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/70 dark:text-amber-300 dark:border-amber-700';
-    case 'high':
+    case 'High':
       return 'bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-950/70 dark:text-rose-300 dark:border-rose-700';
     default:
       return 'bg-slate-100 text-slate-700 border-slate-200';
@@ -47,11 +47,11 @@ export function getPriorityStyles(priority: Priority): string {
 
 export function getPriorityDotColor(priority: Priority): string {
   switch (priority) {
-    case 'low':
+    case 'Low':
       return 'bg-slate-500';
-    case 'medium':
+    case 'Medium':
       return 'bg-amber-500';
-    case 'high':
+    case 'High':
       return 'bg-rose-500';
     default:
       return 'bg-slate-400';
@@ -60,11 +60,11 @@ export function getPriorityDotColor(priority: Priority): string {
 
 export function getStatusStyles(status: Status): string {
   switch (status) {
-    case 'todo':
+    case 'Todo':
       return 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800';
-    case 'in_progress':
+    case 'In Progress':
       return 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800';
-    case 'completed':
+    case 'Completed':
       return 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800';
     default:
       return 'bg-slate-100 text-slate-700 border-slate-200';
@@ -73,11 +73,11 @@ export function getStatusStyles(status: Status): string {
 
 export function getStatusDotColor(status: Status): string {
   switch (status) {
-    case 'todo':
+    case 'Todo':
       return 'bg-blue-500';
-    case 'in_progress':
+    case 'In Progress':
       return 'bg-purple-500';
-    case 'completed':
+    case 'Completed':
       return 'bg-emerald-500';
     default:
       return 'bg-slate-400';
@@ -122,7 +122,7 @@ export function getDueDateStatus(dueDate: string, status?: Status): {
   isDueSoon: boolean;
   className: string;
 } {
-  if (!dueDate || status === 'completed') {
+  if (!dueDate || status === 'Completed') {
     return {
       label: formatDate(dueDate),
       isOverdue: false,

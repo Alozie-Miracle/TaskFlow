@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, use } from 'react';
+import React, { useEffect, useState, use, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppLayout } from '@/components/AppLayout';
@@ -35,6 +35,8 @@ import { Skeleton } from '@/components/ui/Skeleton';
 
 export default function TaskDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  console.log(id);
+  
   const router = useRouter();
   const [task, setTask] = useState<Task | null>(null);
   const [assignees, setAssignees] = useState<Assignee[]>([]);
@@ -50,7 +52,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
 
   const toast = useToast();
 
-  const fetchTaskDetails = React.useCallback(async () => {
+  const fetchTaskDetails = useCallback(async () => {
     try {
       const [taskRes, asgRes] = await Promise.all([
         fetch(`/api/tasks/${id}`),
@@ -83,7 +85,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
   const handleStatusChange = async (newStatus: Status) => {
     if (!task) return;
     try {
-      const res = await fetch(`/api/tasks/${task.id}/status`, {
+      const res = await fetch(`/api/tasks/${task._id}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
@@ -103,7 +105,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
   const handleReassign = async (newAssigneeId: string) => {
     if (!task) return;
     try {
-      const res = await fetch(`/api/tasks/${task.id}`, {
+      const res = await fetch(`/api/tasks/${task._id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ assigneeId: newAssigneeId || null }),
@@ -122,34 +124,23 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
 
   const handleAddNote = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newNote.trim() || !task) return;
-
-    // Add note to task activities
-    const now = new Date().toISOString();
-    const updatedActivities = [
-      ...(task.activities || []),
-      {
-        id: `act-note-${Date.now()}`,
-        timestamp: now,
-        action: 'Note added by Admin',
-        user: 'Admin',
-        details: newNote.trim(),
-      },
-    ];
+    if (!newNote.trim() || !task?._id) return;
 
     try {
-      const res = await fetch(`/api/tasks/${task.id}`, {
+      const res = await fetch(`/api/tasks/${task._id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ activities: updatedActivities }),
+        body: JSON.stringify({ newNote: newNote.trim() }),
       });
 
       if (res.ok) {
         toast.success('Note logged to activity history');
         setNewNote('');
         fetchTaskDetails();
+      } else {
+        toast.error('Failed to add note');
       }
-    } catch {
+    } catch (error) {
       toast.error('Failed to add note');
     }
   };
@@ -159,7 +150,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
     setIsDeleting(true);
 
     try {
-      const res = await fetch(`/api/tasks/${task.id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/tasks/${task._id}`, { method: 'DELETE' });
       if (res.ok) {
         toast.success('Task deleted successfully');
         router.push('/tasks');
@@ -247,7 +238,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
               {/* Status transition quick bar */}
               <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2 flex-wrap">
                 <span className="text-xs font-semibold text-slate-500 mr-1">Quick Status:</span>
-                {(['todo', 'in_progress', 'completed'] as Status[]).map((st) => (
+                {(['Todo', 'In Progress', 'Completed'] as Status[]).map((st) => (
                   <button
                     key={st}
                     id={`task-detail-status-btn-${st}`}
@@ -276,7 +267,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
             </div>
 
             {/* Activity History Timeline */}
-            <div className="p-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs space-y-4">
+            {/* <div className="p-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
                 <div className="flex items-center gap-2">
                   <Activity className="w-4 h-4 text-blue-600" />
@@ -287,13 +278,13 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
                 <span className="text-xs text-slate-400">
                   {task.activities?.length || 0} events
                 </span>
-              </div>
+              </div> */}
 
               {/* Timeline list */}
-              <div className="space-y-4 pt-2">
+              {/* <div className="space-y-4 pt-2">
                 {task.activities && task.activities.length > 0 ? (
                   task.activities.map((act, index) => (
-                    <div key={act.id} className="flex items-start gap-3 text-xs relative">
+                    <div key={act._id} className="flex items-start gap-3 text-xs relative">
                       {index < task.activities!.length - 1 && (
                         <div className="absolute left-3.5 top-6 bottom-0 w-0.5 bg-slate-200 dark:bg-slate-800" />
                       )}
@@ -320,10 +311,10 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
                 ) : (
                   <p className="text-xs text-slate-400 py-2">No activity events recorded.</p>
                 )}
-              </div>
+              </div> */}
 
               {/* Add Note Form */}
-              <form onSubmit={handleAddNote} className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 flex gap-2">
+              {/* <form onSubmit={handleAddNote} className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 flex gap-2">
                 <input
                   type="text"
                   value={newNote}
@@ -339,8 +330,8 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
                   <Send className="w-3.5 h-3.5" />
                   <span>Add Note</span>
                 </button>
-              </form>
-            </div>
+              </form>  */}
+            {/* </div> */}
           </div>
 
           {/* Sidebar Meta Column (4 cols) */}
@@ -364,7 +355,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
                     </div>
                     <div className="min-w-0">
                       <Link
-                        href={`/assignees/${task.assignee.id}`}
+                        href={`/assignees/${task.assignee._id}`}
                         className="text-sm font-bold text-slate-900 dark:text-slate-100 hover:text-blue-600 flex items-center gap-1"
                       >
                         <span className="truncate">{task.assignee.name}</span>
@@ -397,7 +388,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
                 >
                   <option value="">(Unassigned)</option>
                   {assignees.map((asg) => (
-                    <option key={asg.id} value={asg.id}>
+                    <option key={asg._id} value={asg._id}>
                       {asg.name} ({asg.role})
                     </option>
                   ))}

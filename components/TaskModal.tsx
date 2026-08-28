@@ -26,8 +26,8 @@ export function TaskModal({
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [assigneeId, setAssigneeId] = useState<string>('');
-  const [priority, setPriority] = useState<Priority>('medium');
-  const [status, setStatus] = useState<Status>('todo');
+  const [priority, setPriority] = useState<Priority>('Medium');
+  const [status, setStatus] = useState<Status>('Todo');
   const [dueDate, setDueDate] = useState('');
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -47,8 +47,8 @@ export function TaskModal({
       setTitle('');
       setDescription('');
       setAssigneeId('');
-      setPriority('medium');
-      setStatus('todo');
+      setPriority('Medium');
+      setStatus('Todo');
       // Default due date: 3 days from now
       const d = new Date();
       d.setDate(d.getDate() + 3);
@@ -79,6 +79,7 @@ export function TaskModal({
     if (!validateForm()) return;
 
     setIsSubmitting(true);
+    
 
     try {
       const payload = {
@@ -90,7 +91,7 @@ export function TaskModal({
         dueDate,
       };
 
-      const url = isEditing ? `/api/tasks/${taskToEdit!.id}` : '/api/tasks';
+      const url = isEditing ? `/api/tasks/${taskToEdit!._id}` : '/api/tasks';
       const method = isEditing ? 'PUT' : 'POST';
 
       const res = await fetch(url, {
@@ -220,7 +221,7 @@ export function TaskModal({
               Priority
             </label>
             <div className="grid grid-cols-3 gap-2">
-              {(['low', 'medium', 'high'] as Priority[]).map((p) => {
+              {(['Low', 'Medium', 'High'] as Priority[]).map((p) => {
                 const isSelected = priority === p;
                 return (
                   <button
@@ -230,15 +231,15 @@ export function TaskModal({
                     onClick={() => setPriority(p)}
                     className={cn(
                       'py-2 px-3 rounded-lg text-xs font-semibold border text-center transition-all capitalize cursor-pointer',
-                      p === 'low' &&
+                      p === 'Low' &&
                         (isSelected
                           ? 'bg-slate-200 text-slate-900 border-slate-400 dark:bg-slate-700 dark:text-white dark:border-slate-500 ring-2 ring-slate-400/30'
                           : 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800/80 dark:text-slate-400 dark:border-slate-700 hover:bg-slate-200/60'),
-                      p === 'medium' &&
+                      p === 'Medium' &&
                         (isSelected
                           ? 'bg-amber-100 text-amber-900 border-amber-400 dark:bg-amber-950 dark:text-amber-200 dark:border-amber-500 ring-2 ring-amber-400/30'
                           : 'bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800/60 hover:bg-amber-100/60'),
-                      p === 'high' &&
+                      p === 'High' &&
                         (isSelected
                           ? 'bg-rose-100 text-rose-900 border-rose-400 dark:bg-rose-950 dark:text-rose-200 dark:border-rose-500 ring-2 ring-rose-400/30'
                           : 'bg-rose-50 text-rose-800 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800/60 hover:bg-rose-100/60')
@@ -265,9 +266,9 @@ export function TaskModal({
               onChange={(e) => setStatus(e.target.value as Status)}
               className="w-full px-3.5 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="todo">Todo</option>
-              <option value="in_progress">In Progress</option>
-              <option value="completed">Completed</option>
+              <option value="Todo">Todo</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Completed">Completed</option>
             </select>
           </div>
         </div>
@@ -291,7 +292,7 @@ export function TaskModal({
               >
                 <option value="">(Unassigned)</option>
                 {assignees.map((asg) => (
-                  <option key={asg.id} value={asg.id}>
+                  <option key={asg._id} value={asg._id}>
                     {asg.name} — {asg.role}
                   </option>
                 ))}

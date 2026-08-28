@@ -194,19 +194,6 @@ export function Header({
                 </button>
               </div>
 
-              {/* Reset Demo Data */}
-              <div className="py-1">
-                <button
-                  id="user-menu-reset-btn"
-                  onClick={handleResetData}
-                  disabled={isResetting}
-                  className="w-full flex items-center gap-2.5 px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 text-left transition-colors"
-                >
-                  <RotateCcw className="w-3.5 h-3.5 text-amber-500" />
-                  <span>Reset Demo Data</span>
-                </button>
-              </div>
-
               {/* Logout */}
               <div className="pt-1 border-t border-slate-100 dark:border-slate-800">
                 <button

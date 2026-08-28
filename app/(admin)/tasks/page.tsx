@@ -99,7 +99,7 @@ export default function TasksPage() {
   const handleStatusChange = async (taskId: string, newStatus: Status) => {
     // Optimistic UI update
     setTasks((prev) =>
-      prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t))
+      prev.map((t) => (t._id === taskId ? { ...t, status: newStatus } : t))
     );
 
     try {
@@ -136,10 +136,10 @@ export default function TasksPage() {
     setIsDeleting(true);
 
     try {
-      const res = await fetch(`/api/tasks/${taskToDelete.id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/tasks/${taskToDelete._id}`, { method: 'DELETE' });
       if (res.ok) {
         toast.success(`Task "${taskToDelete.title}" deleted.`);
-        setTasks((prev) => prev.filter((t) => t.id !== taskToDelete.id));
+        setTasks((prev) => prev.filter((t) => t._id !== taskToDelete._id));
         setTaskToDelete(null);
       } else {
         toast.error('Failed to delete task.');
@@ -246,9 +246,9 @@ export default function TasksPage() {
                 className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="all">Status: All</option>
-                <option value="todo">Todo</option>
-                <option value="in_progress">In Progress</option>
-                <option value="completed">Completed</option>
+                <option value="Todo">Todo</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Completed">Completed</option>
               </select>
             </div>
 
@@ -261,9 +261,9 @@ export default function TasksPage() {
                 className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="all">Priority: All</option>
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
+                <option value="Low">Low</option>
+                <option value="Medium">Medium</option>
+                <option value="High">High</option>
               </select>
             </div>
 
@@ -278,7 +278,7 @@ export default function TasksPage() {
                 <option value="all">Assignee: All Team</option>
                 <option value="unassigned">Unassigned</option>
                 {assignees.map((asg) => (
-                  <option key={asg.id} value={asg.id}>
+                  <option key={asg._id} value={asg._id}>
                     {asg.name}
                   </option>
                 ))}

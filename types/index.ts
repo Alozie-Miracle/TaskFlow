@@ -1,9 +1,9 @@
-export type Priority = 'low' | 'medium' | 'high';
+export type Priority = 'Low' | 'Medium' | 'High';
 
-export type Status = 'todo' | 'in_progress' | 'completed';
+export type Status = 'Todo' | 'In Progress' | 'Completed';
 
 export interface Assignee {
-  id: string;
+  _id: string;
   name: string;
   email: string;
   role: string;
@@ -13,7 +13,7 @@ export interface Assignee {
 }
 
 export interface TaskActivity {
-  id: string;
+  _id: string;
   timestamp: string;
   action: string;
   user: string;
@@ -21,7 +21,7 @@ export interface TaskActivity {
 }
 
 export interface Task {
-  id: string;
+  _id: string;
   title: string;
   description: string;
   assigneeId: string | null;
@@ -35,7 +35,7 @@ export interface Task {
 }
 
 export interface User {
-  id: string;
+  _id: string;
   email: string;
   name: string;
   role: 'admin' | 'manager' | 'member';

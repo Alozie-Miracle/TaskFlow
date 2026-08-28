@@ -89,14 +89,14 @@ export default function AssigneesPage() {
     setIsDeleting(true);
 
     try {
-      const res = await fetch(`/api/assignees/${assigneeToDelete.id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/assignees/${assigneeToDelete._id}`, { method: 'DELETE' });
       const data = await res.json();
 
       if (res.ok && data.success) {
         toast.success(
           `Assignee "${assigneeToDelete.name}" deleted. ${data.unassignedTasksCount} active task(s) unassigned.`
         );
-        setAssignees((prev) => prev.filter((a) => a.id !== assigneeToDelete.id));
+        setAssignees((prev) => prev.filter((a) => a._id !== assigneeToDelete._id));
         setAssigneeToDelete(null);
         // Refresh tasks in case
         window.dispatchEvent(new CustomEvent('taskflow:task-updated'));
@@ -193,8 +193,8 @@ export default function AssigneesPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredAssignees.map((asg) => (
               <div
-                key={asg.id}
-                id={`assignee-card-${asg.id}`}
+                key={asg._id}
+                id={`assignee-card-${asg._id}`}
                 className="group p-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs hover:shadow-md hover:border-slate-300 dark:hover:border-slate-700 transition-all flex flex-col justify-between"
               >
                 <div>
@@ -211,7 +211,7 @@ export default function AssigneesPage() {
                       </div>
                       <div className="min-w-0">
                         <Link
-                          href={`/assignees/${asg.id}`}
+                          href={`/assignees/${asg._id}`}
                           className="font-bold text-slate-900 dark:text-slate-100 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors text-sm truncate block"
                         >
                           {asg.name}
@@ -224,7 +224,7 @@ export default function AssigneesPage() {
 
                     <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
                       <button
-                        id={`edit-assignee-btn-${asg.id}`}
+                        id={`edit-assignee-btn-${asg._id}`}
                         onClick={() => {
                           setAssigneeToEdit(asg);
                           setIsModalOpen(true);
@@ -235,7 +235,7 @@ export default function AssigneesPage() {
                         <Edit2 className="w-4 h-4" />
                       </button>
                       <button
-                        id={`delete-assignee-btn-${asg.id}`}
+                        id={`delete-assignee-btn-${asg._id}`}
                         onClick={() => setAssigneeToDelete(asg)}
                         className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
                         title="Delete member"
@@ -292,7 +292,7 @@ export default function AssigneesPage() {
 
                 {/* Footer Action */}
                 <Link
-                  href={`/assignees/${asg.id}`}
+                  href={`/assignees/${asg._id}`}
                   className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50/60 dark:bg-blue-950/40 hover:bg-blue-100/80 dark:hover:bg-blue-950/80 border border-blue-100 dark:border-blue-900/60 transition-colors"
                 >
                   <span>View Member Tasks</span>

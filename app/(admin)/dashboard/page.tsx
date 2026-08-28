@@ -55,7 +55,6 @@ export default function DashboardPage() {
 
       if (asgRes.ok) {
         const asgData = await asgRes.json();
-        console.log(asgData)
         setAssignees(asgData.assignees || []);
       }
     } catch {
@@ -265,7 +264,7 @@ export default function DashboardPage() {
           {/* Left Column: Recent Activity & Recent Tasks (7 cols) */}
           <div className="lg:col-span-7 space-y-6">
             {/* Recent Activity / Task Stream */}
-            <div className="p-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
+            {/* <div className="p-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
               <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
                 <div className="flex items-center gap-2">
                   <Activity className="w-4.5 h-4.5 text-indigo-600 dark:text-indigo-400" />
@@ -318,7 +317,7 @@ export default function DashboardPage() {
                   ))
                 )}
               </div>
-            </div>
+            </div> */}
 
             {/* Workload Distribution by Team Member */}
             <div className="p-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
@@ -412,12 +411,12 @@ export default function DashboardPage() {
                         const dueMeta = getDueDateStatus(t.dueDate, t.status);
                         return (
                           <div
-                            key={t.id}
+                            key={t._id}
                             className="p-3 rounded-xl border border-rose-200 dark:border-rose-900/60 bg-rose-50/50 dark:bg-rose-950/20 flex flex-col gap-2"
                           >
                             <div className="flex items-start justify-between gap-2">
                               <Link
-                                href={`/tasks/${t.id}`}
+                                href={`/tasks/${t._id}`}
                                 className="text-xs font-bold text-slate-900 dark:text-slate-100 hover:text-indigo-600 line-clamp-1"
                               >
                                 {t.title}
@@ -429,7 +428,7 @@ export default function DashboardPage() {
                                 {dueMeta.label}
                               </span>
                               <button
-                                onClick={() => handleQuickStatusChange(t.id, 'completed')}
+                                onClick={() => handleQuickStatusChange(t._id, 'Completed')}
                                 className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
                               >
                                 Mark Done →
@@ -457,12 +456,12 @@ export default function DashboardPage() {
                         const dueMeta = getDueDateStatus(t.dueDate, t.status);
                         return (
                           <div
-                            key={t.id}
+                            key={t._id}
                             className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 flex items-center justify-between gap-2"
                           >
                             <div className="min-w-0">
                               <Link
-                                href={`/tasks/${t.id}`}
+                                href={`/tasks/${t._id}`}
                                 className="text-xs font-medium text-slate-900 dark:text-slate-100 hover:text-indigo-600 truncate block"
                               >
                                 {t.title}

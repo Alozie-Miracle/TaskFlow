@@ -5,6 +5,7 @@ import { connectToDatabase } from '@/lib/db';
 import { TaskModel, ITask } from '@/models/Task';
 import { AssigneeModel } from '@/models/Assignee';
 import { taskSchema } from '@/lib/validations/task';
+import { Task } from '@/types';
 
 
 export async function GET(req: NextRequest) {
@@ -84,7 +85,17 @@ export async function GET(req: NextRequest) {
       .sort(sortOptions)
       .lean();
 
-    return NextResponse.json({ tasks, total: tasks.length });
+    // Transform tasks to attach populated assigneeId data to assignee key
+    const formattedTasks = tasks.map((task: Task) => {
+      const { assigneeId, ...rest } = task;
+      return {
+        ...rest,
+        assigneeId: task.assigneeId || assigneeId || null,
+        assignee: assigneeId || null,
+      };
+    });
+
+    return NextResponse.json({ tasks: formattedTasks, total: formattedTasks.length });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch tasks.' }, { status: 500 });
   }

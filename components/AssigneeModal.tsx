@@ -90,7 +90,7 @@ export function AssigneeModal({
         avatarColor,
       };
 
-      const url = isEditing ? `/api/assignees/${assigneeToEdit!.id}` : '/api/assignees';
+      const url = isEditing ? `/api/assignees/${assigneeToEdit!._id}` : '/api/assignees';
       const method = isEditing ? 'PUT' : 'POST';
 
       const res = await fetch(url, {

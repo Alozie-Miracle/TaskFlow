@@ -29,28 +29,28 @@ interface TaskBoardProps {
 }
 
 const COLUMNS: Array<{
-  id: Status;
+  _id: Status;
   label: string;
   badgeClass: string;
   dotColor: string;
   headerBorder: string;
 }> = [
   {
-    id: 'todo',
+    _id: 'Todo',
     label: 'Todo',
     badgeClass: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800',
     dotColor: 'bg-blue-500',
     headerBorder: 'border-blue-500',
   },
   {
-    id: 'in_progress',
+    _id: 'In Progress',
     label: 'In Progress',
     badgeClass: 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800',
     dotColor: 'bg-purple-500',
     headerBorder: 'border-purple-500',
   },
   {
-    id: 'completed',
+    _id: 'Completed',
     label: 'Completed',
     badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800',
     dotColor: 'bg-emerald-500',
@@ -89,14 +89,14 @@ export function TaskBoard({
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       {COLUMNS.map((column) => {
-        const columnTasks = tasks.filter((t) => t.status === column.id);
+        const columnTasks = tasks.filter((t) => t.status === column._id);
 
         return (
           <div
-            key={column.id}
-            id={`board-column-${column.id}`}
+            key={column._id}
+            id={`board-column-${column._id}`}
             onDragOver={handleDragOver}
-            onDrop={(e) => handleDrop(e, column.id)}
+            onDrop={(e) => handleDrop(e, column._id)}
             className="flex flex-col rounded-2xl bg-slate-100/70 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80 p-4 min-h-[500px]"
           >
             {/* Column Header */}
@@ -112,8 +112,8 @@ export function TaskBoard({
               </div>
               {onCreateTaskWithStatus && (
                 <button
-                  id={`column-add-btn-${column.id}`}
-                  onClick={() => onCreateTaskWithStatus(column.id)}
+                  id={`column-add-btn-${column._id}`}
+                  onClick={() => onCreateTaskWithStatus(column._id)}
                   className="p-1 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-white dark:hover:bg-slate-800 transition-colors"
                   aria-label={`Add task to ${column.label}`}
                 >
@@ -134,10 +134,10 @@ export function TaskBoard({
 
                   return (
                     <div
-                      key={task.id}
-                      id={`board-task-card-${task.id}`}
+                      key={task._id}
+                      id={`board-task-card-${task._id}`}
                       draggable
-                      onDragStart={(e) => handleDragStart(e, task.id)}
+                      onDragStart={(e) => handleDragStart(e, task._id)}
                       className="group p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs hover:shadow-md hover:border-slate-300 dark:hover:border-slate-700 transition-all cursor-grab active:cursor-grabbing space-y-3"
                     >
                       {/* Priority and Actions */}
@@ -145,7 +145,7 @@ export function TaskBoard({
                         <PriorityBadge priority={task.priority} />
                         <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
                           <button
-                            id={`board-edit-${task.id}`}
+                            id={`board-edit-${task._id}`}
                             onClick={() => onEditTask(task)}
                             className="p-1 rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                             title="Edit task"
@@ -153,7 +153,7 @@ export function TaskBoard({
                             <Edit2 className="w-3.5 h-3.5" />
                           </button>
                           <button
-                            id={`board-delete-${task.id}`}
+                            id={`board-delete-${task._id}`}
                             onClick={() => onDeleteTask(task)}
                             className="p-1 rounded text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
                             title="Delete task"
@@ -166,7 +166,7 @@ export function TaskBoard({
                       {/* Title & description */}
                       <div>
                         <Link
-                          href={`/tasks/${task.id}`}
+                          href={`/tasks/${task._id}`}
                           className="block text-sm font-semibold text-slate-900 dark:text-slate-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors line-clamp-2"
                         >
                           {task.title}
@@ -207,11 +207,11 @@ export function TaskBoard({
 
                       {/* Move Status Quick Buttons */}
                       <div className="flex items-center justify-between pt-1 text-[11px] text-slate-400">
-                        {column.id !== 'todo' && (
+                        {column._id !== 'Todo' && (
                           <button
                             type="button"
                             onClick={() =>
-                              onStatusChange(task.id, column.id === 'completed' ? 'in_progress' : 'todo')
+                              onStatusChange(task._id, column._id === 'Completed' ? 'In Progress' : 'Todo')
                             }
                             className="inline-flex items-center gap-0.5 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors cursor-pointer"
                           >
@@ -220,11 +220,11 @@ export function TaskBoard({
                           </button>
                         )}
                         <div className="flex-1" />
-                        {column.id !== 'completed' && (
+                        {column._id !== 'Completed' && (
                           <button
                             type="button"
                             onClick={() =>
-                              onStatusChange(task.id, column.id === 'todo' ? 'in_progress' : 'completed')
+                              onStatusChange(task._id, column._id === 'Todo' ? 'In Progress' : 'Completed')
                             }
                             className="inline-flex items-center gap-0.5 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors cursor-pointer"
                           >

@@ -118,7 +118,7 @@ export default function AssigneeDetailPage({
     setIsDeleting(true);
 
     try {
-      const res = await fetch(`/api/assignees/${assignee.id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/assignees/${assignee._id}`, { method: 'DELETE' });
       const data = await res.json();
 
       if (res.ok) {
@@ -318,12 +318,12 @@ export default function AssigneeDetailPage({
 
                     return (
                       <tr
-                        key={t.id}
+                        key={t._id}
                         className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors"
                       >
                         <td className="py-3.5 px-4 max-w-sm">
                           <Link
-                            href={`/tasks/${t.id}`}
+                            href={`/tasks/${t._id}`}
                             className="font-medium text-slate-900 dark:text-slate-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors block truncate"
                           >
                             {t.title}
@@ -338,14 +338,14 @@ export default function AssigneeDetailPage({
                         <td className="py-3.5 px-4">
                           <select
                             value={t.status}
-                            onChange={(e) => handleStatusChange(t.id, e.target.value as Status)}
+                            onChange={(e) => handleStatusChange(t._id, e.target.value as Status)}
                             className={cn(
                               'text-xs font-semibold px-2.5 py-1 rounded-full border cursor-pointer focus:outline-none bg-transparent',
-                              t.status === 'todo' &&
+                              t.status === 'Todo' &&
                                 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800',
-                              t.status === 'in_progress' &&
+                              t.status === 'In Progress' &&
                                 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800',
-                              t.status === 'completed' &&
+                              t.status === 'Completed' &&
                                 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800'
                             )}
                           >
@@ -365,7 +365,7 @@ export default function AssigneeDetailPage({
                         </td>
                         <td className="py-3.5 px-4 text-right">
                           <Link
-                            href={`/tasks/${t.id}`}
+                            href={`/tasks/${t._id}`}
                             className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1"
                           >
                             <span>Details</span>

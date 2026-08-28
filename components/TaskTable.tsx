@@ -139,19 +139,19 @@ export function TaskTable({
         <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 text-sm">
           {tasks.map((task) => {
             const dueMeta = getDueDateStatus(task.dueDate, task.status);
-            const isMenuOpen = openDropdownId === task.id;
+            const isMenuOpen = openDropdownId === task._id;
 
             return (
               <tr
-                key={task.id}
-                id={`task-row-${task.id}`}
+                key={task._id}
+                id={`task-row-${task._id}`}
                 className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors group"
               >
                 {/* Title & Description */}
                 <td className="py-3.5 px-4 max-w-xs sm:max-w-md">
                   <div className="flex flex-col">
                     <Link
-                      href={`/tasks/${task.id}`}
+                      href={`/tasks/${task._id}`}
                       className="font-medium text-slate-900 dark:text-slate-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-1.5 line-clamp-1"
                     >
                       <span>{task.title}</span>
@@ -167,7 +167,7 @@ export function TaskTable({
                 <td className="py-3.5 px-4">
                   {task.assignee ? (
                     <Link
-                      href={`/assignees/${task.assignee.id}`}
+                      href={`/assignees/${task.assignee._id}`}
                       className="inline-flex items-center gap-2 hover:opacity-80 transition-opacity"
                     >
                       <div
@@ -199,26 +199,26 @@ export function TaskTable({
                 <td className="py-3.5 px-4">
                   <div className="inline-flex items-center">
                     <select
-                      id={`quick-status-${task.id}`}
+                      id={`quick-status-${task._id}`}
                       value={task.status}
-                      onChange={(e) => onStatusChange(task.id, e.target.value as Status)}
+                      onChange={(e) => onStatusChange(task._id, e.target.value as Status)}
                       className={cn(
                         'text-xs font-semibold px-2.5 py-1 rounded-full border cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 bg-transparent transition-all',
-                        task.status === 'todo' &&
+                        task.status === 'Todo' &&
                           'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800',
-                        task.status === 'in_progress' &&
+                        task.status === 'In Progress' &&
                           'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800',
-                        task.status === 'completed' &&
+                        task.status === 'Completed' &&
                           'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800'
                       )}
                     >
-                      <option value="todo" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
+                      <option value="Todo" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
                         Todo
                       </option>
-                      <option value="in_progress" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
+                      <option value="In Progress" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
                         In Progress
                       </option>
-                      <option value="completed" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
+                      <option value="Completed" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
                         Completed
                       </option>
                     </select>
@@ -237,11 +237,11 @@ export function TaskTable({
                 <td className="py-3.5 px-4 text-right">
                   <div className="relative inline-block text-left">
                     <button
-                      id={`task-actions-btn-${task.id}`}
+                      id={`task-actions-btn-${task._id}`}
                       data-dropdown-trigger="true"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setOpenDropdownId(isMenuOpen ? null : task.id);
+                        setOpenDropdownId(isMenuOpen ? null : task._id);
                       }}
                       className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                       aria-label="Open task actions"
@@ -255,14 +255,14 @@ export function TaskTable({
                         className="absolute right-0 mt-1 w-44 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl py-1 z-30 text-xs text-slate-700 dark:text-slate-200 animate-in fade-in zoom-in-95 duration-100"
                       >
                         <Link
-                          href={`/tasks/${task.id}`}
+                          href={`/tasks/${task._id}`}
                           className="flex items-center gap-2 px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                         >
                           <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
                           <span>View Details</span>
                         </Link>
                         <button
-                          id={`task-menu-edit-${task.id}`}
+                          id={`task-menu-edit-${task._id}`}
                           onClick={() => {
                             setOpenDropdownId(null);
                             onEditTask(task);
@@ -274,7 +274,7 @@ export function TaskTable({
                         </button>
                         <div className="my-1 border-t border-slate-100 dark:border-slate-800" />
                         <button
-                          id={`task-menu-delete-${task.id}`}
+                          id={`task-menu-delete-${task._id}`}
                           onClick={() => {
                             setOpenDropdownId(null);
                             onDeleteTask(task);

@@ -2,8 +2,6 @@ import type { Metadata } from 'next';
 import { ThemeProvider } from '@/components/context/ThemeContext';
 import { AuthProvider } from '@/components/context/AuthContext';
 import { ToastProvider } from '@/components/context/ToastContext';
-// Next.js loads this stylesheet as a side effect; the project does not provide CSS module typings.
-// @ts-expect-error: global CSS has no runtime export or TypeScript declaration.
 import './globals.css';
 
 export const metadata: Metadata = {

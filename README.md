@@ -4,7 +4,7 @@ A polished, full-stack internal admin dashboard built with **Next.js 15+ (App Ro
 
 ---
 
-## 🔑 Admin Login Credentials
+## Admin Login Credentials
 
 - **Email**: `admin@example.com`
 - **Password**: `password123`
@@ -13,7 +13,7 @@ A polished, full-stack internal admin dashboard built with **Next.js 15+ (App Ro
 
 ---
 
-## 🚀 Key Features
+## Key Features
 
 ### 1. Authentication & Route Guarding
 - Credentials-based authentication flow backed by server API validation (`/api/auth/login`) and session cookies.
@@ -51,46 +51,8 @@ A polished, full-stack internal admin dashboard built with **Next.js 15+ (App Ro
 
 ---
 
-## 🛠️ Architecture & Project Structure
 
-```
-├── app/
-│   ├── api/
-│   │   ├── auth/          # Login, logout, session verification
-│   │   ├── tasks/         # Tasks CRUD & status patch routes
-│   │   ├── assignees/     # Assignees CRUD & deletion policy routes
-│   │   ├── dashboard/     # Summary metrics & activity stream
-│   │   └── reset-data/    # 1-click demo data reset
-│   ├── dashboard/page.tsx # Operations overview
-│   ├── tasks/
-│   │   ├── page.tsx       # Task management (Table & Board views)
-│   │   └── [id]/page.tsx  # Task detail & activity log
-│   ├── assignees/
-│   │   ├── page.tsx       # Team members grid
-│   │   └── [id]/page.tsx  # Member profile & assigned tasks
-│   ├── login/page.tsx     # Admin authentication card
-│   ├── layout.tsx         # Root layout with theme, auth & toast providers
-│   └── globals.css        # Tailwind styling
-├── components/
-│   ├── ui/                # Modal, ConfirmDialog, Badge, Skeleton, EmptyState
-│   ├── AppLayout.tsx      # Authenticated shell layout
-│   ├── Header.tsx         # Top bar with quick actions, theme toggle, user menu
-│   ├── Sidebar.tsx        # Navigation sidebar with active indicators
-│   ├── TaskTable.tsx      # Sortable data table
-│   ├── TaskBoard.tsx      # Kanban board with drag-and-drop
-│   ├── TaskModal.tsx      # Create/Edit task modal
-│   └── AssigneeModal.tsx  # Create/Edit assignee modal
-├── lib/
-│   ├── data.ts            # Rich enterprise seed dataset
-│   ├── storage.ts         # In-memory store with relational aggregations
-│   └── utils.ts           # Styling, date math, & color helpers
-└── types/
-    └── index.ts           # Strict TypeScript interfaces
-```
-
----
-
-## ⚙️ Setup & Local Development
+## Setup & Local Development
 
 1. **Install dependencies**:
    ```bash
@@ -113,10 +75,19 @@ A polished, full-stack internal admin dashboard built with **Next.js 15+ (App Ro
 
 ---
 
-## 💡 Key Technical Decisions
+## Key Technical Decisions
 
 1. **Next.js App Router API Handlers**: Built REST API route handlers (`app/api/*`) for strict separation of concerns between presentation, validation, and data mutations.
 2. **Server-Side Input Validation**: All POST/PUT/PATCH endpoints validate required fields, string lengths, valid enum types (`Priority`, `Status`), and email format before writing to storage.
 3. **Optimistic Updates & Event Syncing**: State mutations update the local view smoothly and dispatch cross-component refresh events (`taskflow:task-updated`, `taskflow:assignee-updated`).
 4. **Relational Integrity on Deletion**: Decided on the "Safe Unassign" policy when deleting assignees to guarantee zero data loss in internal operational workflows.
 5. **Accessibility & Contrast**: Explicit high-contrast color badges, focus rings, semantic table headers, and keyboard shortcuts (`Escape` to close modals, `Enter` to submit).
+
+
+### Environment Variables
+
+Create a `.env.local` file in the root directory and add the following keys:
+
+```env
+MONGODB_URI=mongodb+srv://<username>:<password>@cluster.mongodb.net/taskflow
+JWT_SECRET=your_super_secret_jwt_key
